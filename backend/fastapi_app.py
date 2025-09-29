@@ -25,7 +25,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kolamkar-s.onrender.com", "http://localhost:3000"], # Updated to Render frontend URL and localhost for dev
+    allow_origins=["https://kolamkars.vercel.app/", "http://localhost:3000"], # Updated to Vercel frontend URL and localhost for dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
