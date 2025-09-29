@@ -15,6 +15,7 @@ export function AnalyzeUpload() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   // Function to handle downloading the analysis report
   const handleDownloadReport = useCallback(() => {
@@ -49,7 +50,6 @@ export function AnalyzeUpload() {
   // Function to handle recreating the design on the generate page
   const handleRecreateDesign = useCallback(() => {
     if (analysisResult) {
-      const router = useRouter();
       const params = new URLSearchParams();
 
       // Force designType to "kambi" and set parameters consistent with the hardcoded Kambi analysis
