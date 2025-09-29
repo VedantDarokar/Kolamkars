@@ -17,8 +17,8 @@ interface KolamCanvasProps {
     designType?: string;
   }
   kolamSvg: string | null;
-  selectedSegmentId: string | null;
-  onSegmentClick: (id: string | null) => void;
+  selectedSegmentId?: string | null;
+  onSegmentClick?: (id: string | null) => void;
 }
 
 export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegmentClick }: KolamCanvasProps) {
@@ -43,8 +43,28 @@ export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegment
   useEffect(() => {
     if (!kolamSvg) return;
 
+    // If the provided string is not an SVG (e.g. data:image/png;base64,...),
+    // render it as an <img> instead of trying to parse as SVG.
+    const isLikelySvg = typeof kolamSvg === 'string' && kolamSvg.trim().startsWith('<svg');
+    const svgContainer = document.getElementById("kolam-svg-container");
+    if (!isLikelySvg) {
+      if (svgContainer) {
+        svgContainer.innerHTML = `<img src="${kolamSvg}" alt="Kolam" style="max-width:100%;height:auto;" />`;
+      }
+      return;
+    }
+
     const parser = new DOMParser();
     const svgDoc = parser.parseFromString(kolamSvg, "image/svg+xml");
+
+    // If parsing failed, fall back to <img>
+    if (svgDoc.getElementsByTagName('parsererror').length > 0) {
+      if (svgContainer) {
+        svgContainer.innerHTML = `<img src="${kolamSvg}" alt="Kolam" style="max-width:100%;height:auto;" />`;
+      }
+      return;
+    }
+
     const svgElement = svgDoc.documentElement;
 
     // Add event listeners and highlight selected segment
@@ -52,8 +72,10 @@ export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegment
     allSvgElements.forEach((element) => {
       const id = element.id;
       if (id) {
-        element.addEventListener("click", () => onSegmentClick(id));
-        if (id === selectedSegmentId) {
+        if (onSegmentClick) {
+          element.addEventListener("click", () => onSegmentClick(id));
+        }
+        if (selectedSegmentId && id === selectedSegmentId) {
           element.classList.add("selected-kolam-segment");
         } else {
           element.classList.remove("selected-kolam-segment");
@@ -69,21 +91,11 @@ export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegment
     // Since dangerouslySetInnerHTML doesn't allow attaching event listeners directly,
     // we need a slightly different approach or a wrapper component that can do this.
     // For now, let's update the div's inner HTML directly.
-    const svgContainer = document.getElementById("kolam-svg-container");
     if (svgContainer) {
       svgContainer.innerHTML = modifiedSvgString;
     }
 
   }, [kolamSvg, selectedSegmentId, onSegmentClick]); // Dependencies
-
-  if (kolamSvg) {
-    return (
-      <div
-        id="kolam-svg-container"
-        className="aspect-square bg-white rounded-lg border border-border p-4 flex items-center justify-center"
-      />
-    )
-  }
 
   // Original canvas rendering logic (kept for fallback or future use if needed)
   // If kolamSvg is null, or if JS is disabled, this canvas will render.
@@ -197,7 +209,14 @@ export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegment
 
   return (
     <div className="aspect-square bg-white rounded-lg border border-border p-4">
-      <canvas ref={canvasRef} className="w-full h-full" style={{ maxWidth: "100%", height: "auto" }} />
+      {kolamSvg ? (
+        <div
+          id="kolam-svg-container"
+          className="w-full h-full flex items-center justify-center"
+        />
+      ) : (
+        <canvas ref={canvasRef} className="w-full h-full" style={{ maxWidth: "100%", height: "auto" }} />
+      )}
     </div>
   )
 }

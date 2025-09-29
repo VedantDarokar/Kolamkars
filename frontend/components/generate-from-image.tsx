@@ -11,6 +11,9 @@ export function GenerateFromImage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [generatedKolamSvg, setGeneratedKolamSvg] = useState<string | null>(null) // New state for generated SVG
   const [error, setError] = useState<string | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null)
 
   // Function to save SVG as a file
   const saveSvgAsFile = () => {
@@ -106,6 +109,139 @@ export function GenerateFromImage() {
       setIsProcessing(false)
     }
   }
+
+  const analyzeUploaded = async () => {
+    if (!generatedKolamSvg && !uploadedImage) return
+    setAnalysisLoading(true)
+    setAnalysisError(null)
+    setAnalysisResult(null)
+    try {
+      // If generatedKolamSvg is an SVG string, keep as-is; if it's a data URL, use directly
+      const imageData = generatedKolamSvg || uploadedImage!
+      const response = await fetch("https://kolamkars.onrender.com/analyze-kolam-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageData, prompt: "" }),
+      })
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`HTTP ${response.status}: ${text}`)
+      }
+      const json = await response.json()
+      setAnalysisResult(json?.analysis ?? json)
+    } catch (e: any) {
+      setAnalysisError(e.message || 'Failed to analyze image')
+    } finally {
+      setAnalysisLoading(false)
+    }
+  }
+
+  const renderAnalysis = (data: any) => {
+    let obj: any = data;
+    if (typeof data === 'string') {
+      try {
+        const trimmed = data.trim().replace(/^```json\n?|```$/g, '');
+        obj = JSON.parse(trimmed);
+      } catch {
+        return (
+          <div className="space-y-2 text-sm">
+            <h4 className="font-medium">Analysis</h4>
+            <p className="text-muted-foreground whitespace-pre-wrap">{data}</p>
+          </div>
+        );
+      }
+    }
+
+    if (!obj || typeof obj !== 'object') {
+      return (
+        <div className="space-y-2 text-sm">
+          <h4 className="font-medium">Analysis</h4>
+          <p className="text-muted-foreground whitespace-pre-wrap">{String(obj)}</p>
+        </div>
+      );
+    }
+
+    const specs = obj.specifications || {};
+    const rotation = Array.isArray(obj.rotationPatterns) ? obj.rotationPatterns : [];
+    const algo = Array.isArray(obj.algorithm) ? obj.algorithm : [];
+
+    return (
+      <div className="space-y-3 text-sm">
+        <h4 className="font-medium">Analysis</h4>
+        {obj.symmetryType && (
+          <div>
+            <span className="font-medium">Symmetry Type: </span>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-muted text-foreground/80 border">{obj.symmetryType}</span>
+          </div>
+        )}
+        {rotation.length > 0 && (
+          <div>
+            <span className="font-medium">Rotation Patterns:</span>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {rotation.map((r: any, idx: number) => (
+                <span key={idx} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-muted text-foreground/80 border">{String(r)}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {obj.gridSystem && (
+          <div>
+            <span className="font-medium">Grid System: </span>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-muted text-foreground/80 border">{obj.gridSystem}</span>
+          </div>
+        )}
+        {obj.complexity && (
+          <div>
+            <span className="font-medium">Complexity: </span>
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-muted text-foreground/80 border">{obj.complexity}</span>
+          </div>
+        )}
+        {(specs.dimensions || specs.dotCount !== undefined || specs.lineLength || specs.strokeWidth) && (
+          <div>
+            <span className="font-medium">Specifications:</span>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground mt-1">
+              {specs.dimensions && (
+                <div>
+                  <span className="font-medium text-foreground">Dimensions: </span>{specs.dimensions}
+                </div>
+              )}
+              {specs.dotCount !== undefined && (
+                <div>
+                  <span className="font-medium text-foreground">Dot Count: </span>{specs.dotCount}
+                </div>
+              )}
+              {specs.lineLength && (
+                <div>
+                  <span className="font-medium text-foreground">Line Length: </span>{specs.lineLength}
+                </div>
+              )}
+              {specs.strokeWidth && (
+                <div>
+                  <span className="font-medium text-foreground">Stroke Width: </span>{specs.strokeWidth}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {algo.length > 0 && (
+          <div>
+            <span className="font-medium">Algorithm:</span>
+            <ol className="list-decimal ml-5 text-muted-foreground">
+              {algo.map((step: any, idx: number) => (
+                <li key={idx}>{String(step)}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {obj.culturalSignificance && (
+          <div>
+            <span className="font-medium">Cultural Significance:</span>
+            <p className="text-muted-foreground mt-1 whitespace-pre-wrap">{obj.culturalSignificance}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -270,7 +406,7 @@ export function GenerateFromImage() {
                   </svg>
                   Save as PNG
                 </Button>
-                <Button variant="secondary" className="flex-1 sm:flex-none">
+                <Button variant="secondary" className="flex-1 sm:flex-none" onClick={analyzeUploaded} disabled={analysisLoading || !(generatedKolamSvg || uploadedImage)}>
                   <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
@@ -279,9 +415,18 @@ export function GenerateFromImage() {
                       d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                     />
                   </svg>
-                  Analyze This
+                  {analysisLoading ? 'Analyzing…' : 'Analyze This'}
                 </Button>
               </div>
+
+              {(analysisError || analysisResult) && (
+                <div className="mt-4 p-3 rounded-md border bg-muted/30">
+                  {analysisError && (
+                    <p className="text-red-500 text-sm">Error: {analysisError}</p>
+                  )}
+                  {analysisResult && renderAnalysis(analysisResult)}
+                </div>
+              )}
 
               {/* Navigation Buttons */}
               <div className="mt-4 flex justify-between">

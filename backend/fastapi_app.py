@@ -55,42 +55,78 @@ class GeminiAnalysisRequest(BaseModel):
 
 @app.post("/gemini-analyze-image")
 async def gemini_analyze_image(request: GeminiAnalysisRequest):
+    import time
     try:
-        # Decode the base64 image data
-        image_bytes = io.BytesIO(base64.b64decode(request.image_data.split(",")[-1]))
-        img = Image.open(image_bytes)
+        # Detect mime type from data URL if present
+        header_part = request.image_data.split(",")[0] if "," in request.image_data else ""
+        mime_type = "image/png"
+        if header_part.startswith("data:") and ";base64" in header_part:
+            try:
+                mime_type = header_part.split("data:", 1)[1].split(";", 1)[0] or "image/png"
+            except Exception:
+                mime_type = "image/png"
 
-        # Create a GenerativeModel instance with the correct model name
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        # Decode base64 image bytes
+        raw_b64 = request.image_data.split(",")[-1]
+        decoded_bytes = base64.b64decode(raw_b64)
 
-        # Generate content with the model, including the image and prompt
-        response = model.generate_content([request.prompt, img])
+        # If the input is an SVG, rasterize to PNG to ensure Gemini compatibility
+        if mime_type == "image/svg+xml":
+            try:
+                import cairosvg  # type: ignore
+                decoded_bytes = cairosvg.svg2png(bytestring=decoded_bytes)
+                mime_type = "image/png"
+            except Exception:
+                pass
 
-        # Preprocess Gemini's response text if it starts with "json "
-        gemini_response_text = response.text.strip()
-        
-        # Strip "json " prefix if present
-        if gemini_response_text.startswith("json "):
-            gemini_response_text = gemini_response_text[len("json "):]
-            
-        # Strip markdown code block (```json) if present
-        if gemini_response_text.startswith("```json"):
-            gemini_response_text = gemini_response_text[len("```json\n"):].strip()
-        if gemini_response_text.endswith("```"):
-            gemini_response_text = gemini_response_text[:-len("```")].strip()
-            
-        # Attempt to parse Gemini's response as JSON
+        # Ensure image is not excessively large; downscale if needed
         try:
-            parsed_gemini_response = json.loads(gemini_response_text)
-            
-            # If the initial parse results in a string, it means the JSON was double-escaped
-            if isinstance(parsed_gemini_response, str):
-                parsed_gemini_response = json.loads(parsed_gemini_response)
-                
-            return {"analysis": parsed_gemini_response} # Return as a JSON object
-        except json.JSONDecodeError:
-            # If not valid JSON, return as a raw string (frontend will handle this)
-            return {"analysis": response.text}
+            img = Image.open(io.BytesIO(decoded_bytes))
+            img_format = "PNG" if mime_type == "image/png" else ("JPEG" if mime_type in ("image/jpeg", "image/jpg") else "PNG")
+            max_side = 1536
+            if max(img.size) > max_side:
+                ratio = max_side / float(max(img.size))
+                new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+                img = img.convert("RGB").resize(new_size)
+            out = io.BytesIO()
+            img.save(out, format=img_format, optimize=True)
+            decoded_bytes = out.getvalue()
+            mime_type = "image/png" if img_format == "PNG" else "image/jpeg"
+        except Exception:
+            pass
+
+        # Prepare model and content parts - use latest 2.5 flash
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        image_part = {"mime_type": mime_type, "data": decoded_bytes}
+
+        # Retry with exponential backoff on transient errors
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                response = model.generate_content([
+                    request.prompt or "Analyze the kolam image and return the JSON as specified.",
+                    image_part,
+                ])
+                gemini_response_text = (response.text or "").strip()
+                if gemini_response_text.startswith("json "):
+                    gemini_response_text = gemini_response_text[len("json "):]
+                if gemini_response_text.startswith("```json"):
+                    gemini_response_text = gemini_response_text[len("```json\n"):].strip()
+                if gemini_response_text.endswith("```"):
+                    gemini_response_text = gemini_response_text[:-3].strip()
+
+                try:
+                    parsed = json.loads(gemini_response_text) if gemini_response_text else {}
+                    if isinstance(parsed, str):
+                        parsed = json.loads(parsed)
+                    return {"analysis": parsed}
+                except json.JSONDecodeError:
+                    return {"analysis": gemini_response_text or response.text}
+            except Exception as err:
+                last_error = err
+                time.sleep(0.5 * (2 ** attempt))
+
+        raise last_error  # type: ignore[misc]
     except Exception as e:
         import traceback
         return Response(content=f"Error in Gemini analysis: {e}\n{traceback.format_exc()}", media_type="text/plain", status_code=500)

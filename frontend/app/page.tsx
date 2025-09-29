@@ -25,7 +25,7 @@ export default function HomePage() {
               </Button>
               <Button asChild variant="outline" size="lg" className="font-semibold bg-transparent">
                 <Link href="/analyze">Analyze Design</Link>
-              </Button>
+              </Button> 
             </div>
           </div>
         </div>
