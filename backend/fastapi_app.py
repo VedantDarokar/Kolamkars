@@ -25,7 +25,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kolamkars.vercel.app/", "http://localhost:3000"], # Updated to Vercel frontend URL and localhost for dev
+    allow_origins=["https://kolamkars.vercel.app/", ["http://localhost:3000","https://kolamkars.vercel.app/"]], # Updated to Vercel frontend URL and localhost for dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,7 +98,7 @@ async def gemini_analyze_image(request: GeminiAnalysisRequest):
 @app.options("/gemini-analyze-image")
 async def options_gemini_analyze_image():
     return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Origin": [["http://localhost:3000","https://kolamkars.vercel.app/"], "https://kolamkars.vercel.app/"]
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400"
@@ -375,7 +375,7 @@ async def generate_kolam_from_image(request: ImageProcessRequest):
 @app.options("/generate-from-image")
 async def options_generate_kolam_from_image():
     return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"],
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400" # Cache preflight response for 24 hours
@@ -421,7 +421,7 @@ For `symmetryType`, provide a precise mathematical description if identifiable. 
 @app.options("/analyze-kolam-image")
 async def options_analyze_kolam_image():
     return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"],
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400" # Cache preflight response for 24 hours
@@ -448,7 +448,7 @@ async def generate_kolam_design(params: KolamParameters):
 @app.options("/generate-kolam-svg")
 async def options_generate_kolam_design():
     return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": "http://localhost:3000",
+        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"],
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400" # Cache preflight response for 24 hours
