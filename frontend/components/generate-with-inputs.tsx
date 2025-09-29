@@ -1005,7 +1005,7 @@ export function GenerateWithInputs() {
 
     // Existing backend call (this block will be effectively unused after all types are client-side)
     try {
-      const response = await fetch("http://localhost:8000/generate-kolam-svg", {
+      const response = await fetch("https://kolamkars.onrender.com/generate-kolam-svg", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
