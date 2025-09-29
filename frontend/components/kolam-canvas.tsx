@@ -24,6 +24,22 @@ interface KolamCanvasProps {
 export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegmentClick }: KolamCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Inject style once on mount for selected segment highlighting
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.setAttribute('data-kolam-style', 'selected-segment');
+    style.innerHTML = `
+      .selected-kolam-segment {
+        stroke: #f00 !important;
+        stroke-width: 4 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   useEffect(() => {
     if (!kolamSvg) return;
 
@@ -63,9 +79,8 @@ export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegment
   if (kolamSvg) {
     return (
       <div
-        id="kolam-svg-container" // Add an ID for direct manipulation
+        id="kolam-svg-container"
         className="aspect-square bg-white rounded-lg border border-border p-4 flex items-center justify-center"
-        // dangerouslySetInnerHTML={{ __html: kolamSvg }} // Initial SVG, will be updated by useEffect
       />
     )
   }
@@ -73,16 +88,6 @@ export function KolamCanvas({ parameters, kolamSvg, selectedSegmentId, onSegment
   // Original canvas rendering logic (kept for fallback or future use if needed)
   // If kolamSvg is null, or if JS is disabled, this canvas will render.
   
-  // CSS for selected segment highlighting
-  const style = document.createElement('style');
-  style.innerHTML = `
-    .selected-kolam-segment {
-      stroke: #f00 !important; /* Red highlight */
-      stroke-width: 4 !important;
-    }
-  `;
-  document.head.appendChild(style);
-
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !parameters) return
