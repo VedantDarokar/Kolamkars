@@ -25,7 +25,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000","https://kolamkars.vercel.app/"], # Updated to Vercel frontend URL and localhost for dev
+    allow_origins=["http://localhost:3000", "https://kolamkars.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,14 +95,7 @@ async def gemini_analyze_image(request: GeminiAnalysisRequest):
         import traceback
         return Response(content=f"Error in Gemini analysis: {e}\n{traceback.format_exc()}", media_type="text/plain", status_code=500)
 
-@app.options("/gemini-analyze-image")
-async def options_gemini_analyze_image():
-    return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"], 
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400"
-    })
+# Preflight requests are handled automatically by CORSMiddleware
 
 # Function to expand the L-System string (from kolampython.py)
 def expand_lsystem_string(axiom, rules, iterations):
@@ -372,14 +365,7 @@ async def generate_kolam_from_image(request: ImageProcessRequest):
         import traceback
         return Response(content=f"<svg><text x=\"10\" y=\"20\" fill=\"red\">Error: {e}\n{traceback.format_exc()}</text></svg>", media_type="image/svg+xml", status_code=500)
 
-@app.options("/generate-from-image")
-async def options_generate_kolam_from_image():
-    return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"],
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400" # Cache preflight response for 24 hours
-    })
+# Preflight requests are handled automatically by CORSMiddleware
 
 @app.post("/analyze-kolam-image")
 async def analyze_kolam_image(request: ImageProcessRequest):
@@ -418,14 +404,7 @@ For `symmetryType`, provide a precise mathematical description if identifiable. 
         import traceback
         return Response(content=f"Error: {e}\n{traceback.format_exc()}", media_type="text/plain", status_code=500)
 
-@app.options("/analyze-kolam-image")
-async def options_analyze_kolam_image():
-    return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"],
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400" # Cache preflight response for 24 hours
-    })
+# Preflight requests are handled automatically by CORSMiddleware
 
 @app.post("/generate-kolam-svg")
 async def generate_kolam_design(params: KolamParameters):
@@ -445,11 +424,4 @@ async def generate_kolam_design(params: KolamParameters):
         import traceback
         return Response(content=f"<svg><text x=\"10\" y=\"20\" fill=\"red\">Error: {e}\n{traceback.format_exc()}</text></svg>", media_type="image/svg+xml", status_code=500)
 
-@app.options("/generate-kolam-svg")
-async def options_generate_kolam_design():
-    return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"],
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400" # Cache preflight response for 24 hours
-    })
+# Preflight requests are handled automatically by CORSMiddleware
