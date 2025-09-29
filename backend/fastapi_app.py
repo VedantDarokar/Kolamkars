@@ -25,7 +25,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kolamkars.vercel.app/", ["http://localhost:3000","https://kolamkars.vercel.app/"]], # Updated to Vercel frontend URL and localhost for dev
+    allow_origins=["http://localhost:3000","https://kolamkars.vercel.app/"], # Updated to Vercel frontend URL and localhost for dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,7 +98,7 @@ async def gemini_analyze_image(request: GeminiAnalysisRequest):
 @app.options("/gemini-analyze-image")
 async def options_gemini_analyze_image():
     return Response(status_code=200, headers={
-        "Access-Control-Allow-Origin": [["http://localhost:3000","https://kolamkars.vercel.app/"], "https://kolamkars.vercel.app/"]
+        "Access-Control-Allow-Origin": ["http://localhost:3000","https://kolamkars.vercel.app/"], 
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400"
