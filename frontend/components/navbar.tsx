@@ -9,8 +9,8 @@ const navigation = [
   { name: "Home", href: "/" },
   { name: "Generate", href: "/generate" },
   { name: "Analyze", href: "/analyze" },
-  { name: "Gallery", href: "/gallery" },
   { name: "About Kolam", href: "/about" },
+  { name: "Documentation", href: "https://docs.kolamkars.shop/docs/Kolamkars/Introduction"}
 ]
 
 export function Navbar() {
