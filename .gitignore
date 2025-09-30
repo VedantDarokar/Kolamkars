@@ -71,6 +71,7 @@ frontend/.vercel/
 .vercel/
 
 # Coverage / build
+backend/.env
 frontend/.coverage/
 frontend/coverage/
 coverage/
